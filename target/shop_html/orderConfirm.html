@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+  <script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+</head>
+<body>
+  <div> <!-- 收货地址的增查-->
+    <b>收货地址：</b>
+    <table border="1" id="addressDiv" cellspacing="0">
+
+    </table>
+  </div>
+
+  <div>
+    <b>支付方式：</b><br>
+   <input type="radio" name="payType" value="0"/> 在线支付
+    <input type="radio" name="payType" value="1" />货到付款
+  </div>
+
+<div id="productInfo">
+  <b style="color: green">购物清单：</b>
+  <table border="1" width="500px" id="productDiv">
+
+  </table>
+</div>
+
+  <br>
+  <span style="color: red ;margin-left: 300px">总计：</span>
+  <span style="color: red " id="totalMoney_ydd">0</span>
+  <span style="color: red ">元</span>
+
+<br>
+<br>
+<br>
+<button id="cb" onclick="createOrder()">提交订单</button>
+</body>
+<script>
+
+    // 进行ajax的全局设置
+    $.ajaxSetup({
+        headers: {
+            'token': sessionStorage.getItem("login_token")
+        },
+        //ajax请求完成后  （aop的后置通知）
+        complete:function(a,b,c){
+            var rs=a.responseJSON;
+
+            if(rs.code==1000){
+                alert(rs.message);
+                location.href="login.html"
+            }
+        }
+    });
+
+
+$(function () {
+    //初始化收货地址
+    inintAddRess();
+    inintChecdProduct();
+    //生成一个请求的唯一标示
+    sendFlag=new Date().getTime();
+})
+
+function inintAddRess() {
+    $.post({
+        url:"http://localhost:8081/addressController/queryAddress",
+        dataType:"json",
+        success:function (rs) {
+            debugger
+          if(rs.code==200){
+            var addressArr=rs.data;
+            var htmls="";
+            var radioHtml=""
+              for (var i = 0; i <addressArr.length ; i++) {
+                  if(addressArr[i].ischeck==true){
+                      radioHtml='<td><input type="radio" checked name="addressRadio" value="'+addressArr[i].id+'"/></td>'
+                  }else{
+                      radioHtml='<td><input type="radio"  name="addressRadio" value="'+addressArr[i].id+'"/></td>'
+                  }
+                  htmls+=' <tr>\n' +
+                     radioHtml+
+                      '          <td>'+addressArr[i].name+'</td>\n' +
+                      '          <td>'+addressArr[i].iphone+'</td>\n' +
+                      '          <td>'+addressArr[i].address+'</td>\n' +
+                      '        </tr>';
+              }
+              //将拼好的html 填充到div中
+              $("#addressDiv").html(htmls);
+          }else{
+              alert(rs.message);
+          }
+
+        },error:function () {
+            alert("获取收货地址异常");
+        }
+    });
+}
+
+//获取购物车选中的数据
+function inintChecdProduct() {
+    $.post({
+        url:"http://localhost:8081/cartController/queryCheckProduct",
+        dataType:"json",
+        success:function (rs) {
+            if(rs.code==200){
+                //拿到商品信息
+                var proData=rs.data;
+                var htmls="";//拼好显示的html
+                var totalMoney=0;
+                for (var i = 0; i <proData.length ; i++) {
+
+                    //拿到具体的一个
+                    var pro=proData[i];
+                    totalMoney+=pro.money;
+                    htmls+=' <tr>\n' +
+                        '          <td>'+pro.goodsName+'</td>\n' +
+                        '          <td><img src="'+pro.imgPath+'" width="120px"/></td>\n' +
+                        '          <td>'+pro.price+'元'+'</td>\n' +
+                        '          <td>'+pro.count+'个'+'</td>\n' +
+                        '          <td>'+pro.money+'元'+'</td>\n' +
+                        '      </tr>';
+                }
+
+                $("#productDiv").html(htmls);
+                $("#totalMoney_ydd").html(totalMoney);
+            }
+
+        },error:function () {
+            alert("获取购物车数据异常");
+        }
+    });
+}
+// 全局变量
+    var sendFlag;
+//结算
+function createOrder() {
+    // 按钮置灰
+    //$("#cb").attr("disabled",true);
+  //获取选中的收货地址
+    var addressId=$("[name='addressRadio']:checked").val();
+    //alert(addressId);
+    //获取支付方式
+    var payType=$("[name='payType']:checked").val();
+    //alert(payType);
+    $.post({
+        url:"http://localhost:8081/orderController/createOrder",
+        dataType:"json",
+        data:{"addressId":addressId,"payType":payType,"flag":sendFlag},
+        success:function (rs) {
+            debugger
+            if(rs.code==200){//请求成功
+                   alert("生成订单成功");
+                   //页面间传值    跳转？号传参   将传的值存在浏览器上
+                var str=JSON.stringify(rs.data);
+                  sessionStorage.setItem("orderInfo",str);
+                   location.href="/erweima.html"
+            }else if (rs.code==2000) {
+                alert(rs.message);
+            }else if(rs.code==300){
+                alert("请求处理中 不要多次点击");
+            }
+
+        },error:function () {
+            alert("生成订单异常");
+        }
+    });
+}
+
+</script>
+
+<style>
+  div{
+    margin-top: 30px;
+  }
+
+</style>
+</html>

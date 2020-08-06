@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="/js/qrcode.min.js"></script>
+    <script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+</head>
+<body>
+<center>
+    <div>
+        该订单的订单号为:<font id="orderId" color="red"></font><br>
+        金额:<font id="money" color="red"></font><br>
+        <b><font id="payStatus" color="red"></font></b><br><br>
+    </div>
+    <div id="qrcode"></div>
+</center>
+</body>
+<script type="text/javascript">
+
+
+    // 进行ajax的全局设置
+    $.ajaxSetup({
+        //data:{"name":sessionStorage.getItem("token")}
+        headers: {
+            'token': sessionStorage.getItem("login_token")
+        },
+        //ajax请求完成后  （aop的后置通知）
+        complete:function(a,b,c){
+            var rs=a.responseJSON;
+
+            if(rs.code==1000){
+                alert(rs.message);
+                location.href="login.html"
+            }
+        }
+    });
+
+
+
+
+    $(function () {
+        //获取二维码路径 调用wx接口
+        initMenoyPohto();
+    })
+    //初始化二维码 （ 发送订单号 ）
+    function initMenoyPohto() {
+        //获取订单号：
+        var infoStr = sessionStorage.getItem("orderInfo");
+        var infoObj=JSON.parse(infoStr);
+        //将订单号和金额展示到页面上
+        $("#orderId").html(infoObj.orderId);
+        $("#money").html(infoObj.totalMoney);
+        var oid=infoObj.orderId;
+        //请求接口 获取支付二维码路径
+        $.post({
+            url:"http://localhost:8081/orderController/createMoneyPhoto",
+            dataType:"json",
+            data:{"orderId":oid},
+            success:function (rs) {
+                //拿到二维码
+                if(rs.code==200){
+                    if(rs.data.code==200){
+                        //alert("二维码路径为:"+rs.data.url);
+                        //生成二维码   需要路径
+                        new QRCode(document.getElementById("qrcode"), rs.data.url);  // 设置要生成二维码的链接
+                        // 页面请求支付状态  5秒
+                        setInterval(queryPayStatus,1000*5);
+
+                    }else{
+                        alert("微信生成二维码异常："+rs.data.info);
+                    }
+                }
+            },error:function () {
+                alert("获取二维码失败");
+            }
+        })
+    }
+
+    function queryPayStatus() {
+        var infoStr = sessionStorage.getItem("orderInfo");
+        var infoObj=JSON.parse(infoStr);
+        var oid=infoObj.orderId;
+        $.post({
+            url:"http://localhost:8081/orderController/queryPayStatus",
+            dataType:"json",
+            data:{"orderId":oid},
+            success:function (rs) {
+                if(rs.data==0){
+                    alert("支付异常： 请联系客户");
+                }else if (rs.data==1) {
+                    location.href="success.html"
+                }else if(rs.data==2){
+                    $("#payStatus").html("用户支付中");
+                }else if(rs.data==3){
+                    $("#payStatus").html("用户尚未操作");
+                }
+            },error:function () {
+                alert("支付查询异常");
+            }
+        });
+    }
+</script>
+</html>

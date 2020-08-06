@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+  <link rel="stylesheet" type="text/css" href="./res/static/css/main.css">
+  <link rel="stylesheet" type="text/css" href="./res/layui/css/layui.css">
+  <script type="text/javascript" src="./res/layui/layui.js"></script>
+  <script type="text/javascript" src="js/jquery-3.3.1.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=0">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1">
+</head>
+<body>
+
+  <div class="site-nav-bg">
+    <div class="site-nav w1200">
+      <p class="sn-back-home">
+        <i class="layui-icon layui-icon-home"></i>
+        <a href="./index.html">首页</a>
+      </p>
+      <div class="sn-quick-menu">
+       <div class="login"><a href="./login.html">登录</a></div>
+        <div class="sp-cart"><a href="shopcart.html">购物车</a><span id="count_cart_ydd">2</span></div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <div class="header">
+    <div class="headerLayout w1200">
+      <div class="headerCon">
+        <h1 class="mallLogo">
+          <a href="#" title="母婴商城">
+            <img src="../res/static/img/logo.png">
+          </a>
+        </h1>
+        <div class="mallSearch">
+          <form action="" class="layui-form" novalidate>
+            <input type="text" name="title" required  lay-verify="required" autocomplete="off" class="layui-input" placeholder="请输入需要的商品">
+            <button class="layui-btn" lay-submit lay-filter="formDemo">
+                <i class="layui-icon layui-icon-search"></i>
+            </button>
+            <input type="hidden" name="" value="">
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="content content-nav-base datails-content">
+    <div class="main-nav">
+      <div class="inner-cont0">
+        <div class="inner-cont1 w1200">
+          <div class="inner-cont2">
+            <a href="commodity.html" class="active">所有商品</a>
+            <a href="buytoday.html">今日团购</a>
+            <a href="information.html">母婴资讯</a>
+            <a href="about.html">关于我们</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="data-cont-wrap w1200">
+
+      <div class="crumb">
+        <a href="javascript:;">首页</a>
+        <span>></span>
+        <a href="javascript:;">所有商品</a>
+        <span>></span>
+        <a href="javascript:;">产品详情</a>
+      </div>
+
+      <div class="product-intro layui-clear">
+
+        <div id="goodsDiv"></div>
+
+      </div>
+
+    </div>
+  </div>
+<script type="text/javascript">
+
+    // 进行ajax的全局设置
+    $.ajaxSetup({
+        //data:{"name":sessionStorage.getItem("token")}
+        headers: {
+            'token': sessionStorage.getItem("login_token")
+        },
+        //数据加载完成后
+        complete:function(a,b,c){
+            var rs=a.responseJSON;
+
+            if(rs.code==1000){
+                alert(rs.message);
+                location.href="login.html";
+            }
+        }
+    });
+
+
+
+  /**  对数量进行加减的  */
+  layui.config({
+      base: './res/static/js/util/' //你存放新模块的目录，注意，不是layui的模块目录
+  }).use(['mm','jquery'],function(){
+      var mm = layui.mm,$ = layui.$;
+      var cur = $('.number-cont input').val();
+      $('.number-cont .btn').on('click',function(){
+          if($(this).hasClass('add')){
+              cur++;
+
+          }else{
+              if(cur > 1){
+                  cur--;
+              }
+          }
+          $('.number-cont input').val(cur)
+      })
+
+  });
+</script>
+
+<script>
+
+    //引入jquery
+    $(function () {
+        initGoods();
+    });
+
+
+    //=============商品信息拼接
+    function initGoods() {
+        var id=location.href.split("=")[1];
+        $.post({
+            url:"http://localhost:8081/productController/queryAllProductData",
+            dataType:"json",
+            data:{"goodsId":id},
+            success:function (rs) {
+                debugger
+                var goodsList=rs.data;
+                var goodsHTML="";
+                for (var i = 0; i < goodsList.length; i++) {
+                    var goodsimg =goodsList[i].imgPath;
+                    goodsHTML+="<div class=\"preview-wrap\">\n" +
+                        "          <a href=\"javascript:;\"><img src=\""+goodsimg+"\" style='width: 402px'></a>\n" +
+                        "        </div>";
+
+
+                    goodsHTML+=" <div class=\"itemInfo-wrap\">\n" +
+                        "          <div class=\"itemInfo\">";
+
+                    goodsHTML+="<div class=\"title\">\n" +
+                        "              <h4>"+goodsList[i].name+"</h4>\n" +
+                        "              <span><i class=\"layui-icon layui-icon-rate-solid\"></i>收藏</span>\n" +
+                        "            </div>";
+
+
+                    goodsHTML+="<div class=\"summary\">\n" +
+                        "              <p class=\"reference\"><span>参考价</span> <del>￥"+(goodsList[i].price+30)+"</del></p>\n" +
+                        "              <p class=\"activity\"><span>活动价</span><strong class=\"price\"><i>￥</i>"+goodsList[i].price+"</strong></p>\n" +
+                        "              <p class=\"address-box\"><span>送&nbsp;&nbsp;&nbsp;&nbsp;至</span><strong class=\"address\">"+goodsList[i].areaIds+"</strong></p>\n" +
+                        "            </div>";
+
+
+                    goodsHTML+=" <div class=\"choose-attrs\">\n" +
+                        "              <div class=\"number layui-clear\"><span class=\"title\">数&nbsp;&nbsp;&nbsp;&nbsp;量</span><div class=\"number-cont\"><span class=\"cut btn\">-</span><input onkeyup=\"if(this.value.length==1){this.value=this.value.replace(/[^1-9]/g,'')}else{this.value=this.value.replace(/\\D/g,'')}\" onafterpaste=\"if(this.value.length==1){this.value=this.value.replace(/[^1-9]/g,'')}else{this.value=this.value.replace(/\\D/g,'')}\" maxlength=\"4\" type=\"\" name=\"\" id='count' value=\"1\"><span class=\"add btn\">+</span></div></div>\n" +
+                        "            </div>";
+
+
+
+                    goodsHTML+="<div class=\"choose-btns\">\n" +
+                        "              <button class=\"layui-btn layui-btn-primary purchase-btn\">立刻购买</button>\n" +
+                        "              <button onclick=\"addCart()\" class=\"layui-btn  layui-btn-danger car-btn\"><i class=\"layui-icon layui-icon-cart-simple\"></i>加入购物车</button>  \n" +
+                        "            </div>";
+
+
+                    goodsHTML+="</div>\n" +
+                        "        </div>";
+                }
+                $("#goodsDiv").html(goodsHTML);
+            },
+            error:function () {
+                alert("查询异常")
+            }
+        })
+    }
+
+
+    function addCart() {
+
+        //获取商品id
+        var id = location.href.split("=")[1];
+        //获取个数
+        var count = $("#count").val();
+
+        $.post({
+            url:"http://localhost:8081/cartController/addCart",
+            dataType:"json",
+            data:{"goodsId":id,"count":count},
+            crossDomain: true,
+            success:function (rs) {
+                if(rs.code==200){
+                    var count=rs.data;
+                    if(count>=0){
+                        $("#count_cart_ydd").text(count);
+                        alert("添加购物车成功");
+                    }else{
+                        var num=eval(id.count+count);
+                        alert("库存不足 库存只有:"+num);
+                    }
+                }
+
+            },error:function () {
+                alert("加入购物车异常");
+            }
+        });
+    }
+
+
+</script>
+</body>
+</html>
